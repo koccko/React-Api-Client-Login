@@ -1,21 +1,12 @@
-function getCookie(name) {
-  const prefix = `${name}=`;
-  const parts = document.cookie.split(";").map((c) => c.trim());
-  for (const p of parts) {
-    if (p.startsWith(prefix)) return decodeURIComponent(p.slice(prefix.length));
-  }
-  return "";
-}
-
 export async function apiFetch(path, { method = "GET", body, headers } = {}) {
-  // ТУК: ако cookie-то при теб е BEARER, остави така. Ако е it_token — смени.
-  const token = getCookie("BEARER") || getCookie("it_token");
+  const url = path.startsWith("/") ? path : `/${path}`;
 
-  const res = await fetch(path.startsWith("/") ? path : `/${path}`, {
+  const res = await fetch(url, {
     method,
+    credentials: "include", // ✅ важно за HttpOnly cookie
     headers: {
       ...(body ? { "Content-Type": "application/json" } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      Accept: "application/json",
       ...(headers || {}),
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -23,7 +14,7 @@ export async function apiFetch(path, { method = "GET", body, headers } = {}) {
 
   const ct = res.headers.get("content-type") || "";
   const data = ct.includes("application/json")
-    ? await res.json()
+    ? await res.json().catch(() => ({}))
     : await res.text();
 
   if (!res.ok) {
@@ -34,6 +25,7 @@ export async function apiFetch(path, { method = "GET", body, headers } = {}) {
     const err = new Error(msg);
     err.status = res.status;
     err.data = data;
+    err.url = url;
     throw err;
   }
 
