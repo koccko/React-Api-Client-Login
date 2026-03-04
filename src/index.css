@@ -144,12 +144,13 @@ body {
   gap: 10px;
 }
 
+/* Clock + Avatar */
 .clock {
   padding: 8px 12px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.05);
-  font-weight: 800;
+  font-weight: 900;
   font-size: 12px;
   opacity: 0.92;
   white-space: nowrap;
@@ -203,82 +204,141 @@ body {
   cursor: not-allowed;
 }
 
-/* Nav pills with effect */
-.navPills {
+/* ✅ NEW NAV: separated buttons + wow effects */
+.navRow {
   margin-left: 18px;
   display: flex;
-  gap: 10px;
-  padding: 6px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
+  gap: 14px; /* separation */
 }
 
-.navBtn {
+.navBtn2 {
   position: relative;
-  padding: 10px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-  overflow: hidden;
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(6px);
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 88px;
+
+  min-width: 118px;
+  overflow: hidden;
+
+  transform: translateY(0);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
 }
 
-.navBtnText {
-  position: relative;
-  z-index: 2;
-  font-weight: 900;
-  letter-spacing: 0.2px;
-  opacity: 0.92;
-}
-
-.navBtnGlow {
+/* gradient wave */
+.navWave {
   position: absolute;
   inset: -2px;
   background:
     radial-gradient(
-      circle at 30% 30%,
+      circle at 20% 20%,
       rgba(34, 211, 238, 0.22),
       transparent 60%
     ),
     radial-gradient(
-      circle at 70% 70%,
+      circle at 80% 80%,
       rgba(99, 102, 241, 0.22),
       transparent 60%
     );
-  transform: translateY(18px);
   opacity: 0;
+  transform: translateY(18px);
   transition:
-    opacity 160ms ease,
-    transform 160ms ease;
-  z-index: 1;
+    opacity 180ms ease,
+    transform 180ms ease;
 }
 
-.navBtn:hover .navBtnGlow {
+/* content */
+.navContent {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.navIcon {
+  font-size: 16px;
+  line-height: 1;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+}
+
+.navLabel {
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  opacity: 0.95;
+}
+
+/* underline indicator */
+.navUnderline {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 7px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(99, 102, 241, 0),
+    rgba(34, 211, 238, 0.85),
+    rgba(99, 102, 241, 0)
+  );
+  opacity: 0;
+  transform: scaleX(0.25);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+  z-index: 2;
+}
+
+.navBtn2:hover {
+  transform: translateY(-2px);
+  border-color: rgba(34, 211, 238, 0.6);
+  box-shadow:
+    0 10px 28px rgba(34, 211, 238, 0.18),
+    0 0 22px rgba(99, 102, 241, 0.12),
+    inset 0 0 14px rgba(34, 211, 238, 0.12);
+  background: rgba(34, 211, 238, 0.07);
+}
+
+.navBtn2:hover .navWave {
   opacity: 1;
   transform: translateY(0px);
 }
 
-.navBtnActive {
-  border-color: rgba(34, 211, 238, 0.35);
-  background: rgba(34, 211, 238, 0.08);
+.navBtn2:hover .navUnderline {
+  opacity: 1;
+  transform: scaleX(1);
 }
 
-.navBtnActive .navBtnGlow {
+.navBtn2Active {
+  border-color: rgba(34, 211, 238, 0.75);
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.22),
+    rgba(34, 211, 238, 0.1)
+  );
+  box-shadow:
+    0 0 24px rgba(34, 211, 238, 0.2),
+    inset 0 0 18px rgba(34, 211, 238, 0.14);
+}
+
+.navBtn2Active .navWave {
   opacity: 1;
   transform: translateY(0px);
 }
 
-@media (max-width: 980px) {
-  .navPills {
-    display: none;
-  } /* мобилно: скриваме за чистота */
-  .clock {
-    display: none;
-  }
+.navBtn2Active .navUnderline {
+  opacity: 1;
+  transform: scaleX(1);
 }
 
 /* Page card */
@@ -308,7 +368,7 @@ body {
   font-size: 12px;
 }
 
-/* Cards */
+/* Cards (home page) */
 .card {
   border: 1px solid var(--border);
   background: var(--card2);
@@ -365,27 +425,15 @@ body {
 }
 
 @media (max-width: 980px) {
+  .navRow {
+    display: none;
+  }
+  .clock {
+    display: none;
+  }
   .homeGrid {
     grid-template-columns: 1fr;
   }
-}
-
-.quickRow {
-  display: flex;
-  gap: 10px;
-  margin-top: 14px;
-  flex-wrap: wrap;
-}
-
-.note {
-  margin-top: 14px;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  opacity: 0.85;
-  line-height: 1.5;
-  font-size: 13px;
 }
 
 /* Modal + inputs */

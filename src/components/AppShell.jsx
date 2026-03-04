@@ -32,21 +32,24 @@ function initialsFromUser(user) {
   return (a + b).toUpperCase();
 }
 
-function NavBtn({ to, label }) {
+function NavBtn({ to, icon, label }) {
   return (
     <NavLink
       to={to}
-      className={({ isActive }) => `navBtn ${isActive ? "navBtnActive" : ""}`}
+      className={({ isActive }) => `navBtn2 ${isActive ? "navBtn2Active" : ""}`}
     >
-      <span className="navBtnGlow" />
-      <span className="navBtnText">{label}</span>
+      <span className="navWave" />
+      <span className="navContent">
+        <span className="navIcon">{icon}</span>
+        <span className="navLabel">{label}</span>
+      </span>
+      <span className="navUnderline" />
     </NavLink>
   );
 }
 
 export default function AppShell({ user, title, children }) {
   const nav = useNavigate();
-
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -58,9 +61,7 @@ export default function AppShell({ user, title, children }) {
     return async () => {
       try {
         await apiFetch(API.logout, { method: "POST" });
-      } catch {
-        // ignore
-      }
+      } catch {}
       nav("/login", { replace: true });
     };
   }, [nav]);
@@ -77,11 +78,11 @@ export default function AppShell({ user, title, children }) {
           <div className="brand">IT TEAM</div>
           <div className="sub">{title}</div>
 
-          {/* Center nav */}
-          <div className="navPills">
-            <NavBtn to="/home" label="Home" />
-            <NavBtn to="/tickets" label="Tickets" />
-            <NavBtn to="/chat" label="Chat" />
+          {/* NAV */}
+          <div className="navRow">
+            <NavBtn to="/home" icon="🏠" label="Home" />
+            <NavBtn to="/tickets" icon="🎫" label="Tickets" />
+            <NavBtn to="/chat" icon="💬" label="Chat" />
           </div>
 
           <div className="right">
