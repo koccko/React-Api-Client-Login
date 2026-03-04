@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../api/http.js";
 
 function StatCard({ label, value, hint }) {
   return (
@@ -21,6 +23,44 @@ function Feature({ title, desc }) {
 
 export default function Landing() {
   const nav = useNavigate();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      try {
+        // if session exists, go straight in
+        await apiFetch("/user"); // -> /api/user via http.js + proxy
+        if (!alive) return;
+        nav("/home", { replace: true }); // or "/dashboard" if you prefer
+      } catch {
+        if (!alive) return;
+        setChecking(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [nav]);
+
+  // Optional: while checking session, show same landing with muted UI
+  if (checking) {
+    return (
+      <div className="bg">
+        <div className="blob b1" />
+        <div className="blob b2" />
+        <div className="blob b3" />
+        <div
+          className="shell"
+          style={{ display: "grid", placeItems: "center", minHeight: "100vh" }}
+        >
+          <div style={{ opacity: 0.8 }}>Checking session…</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg">
@@ -34,7 +74,6 @@ export default function Landing() {
           <div className="brand">IT TEAM</div>
           <div className="sub">Ticket System</div>
 
-          {/* Badge moved INSIDE topbar -> no overlap */}
           <div style={{ marginLeft: 12 }}>
             <div className="badge-dev">🚧 В процес на разработка :)</div>
           </div>

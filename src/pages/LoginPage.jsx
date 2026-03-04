@@ -1,18 +1,34 @@
-import { useState } from "react";
-
-function setCookie(name, value, days = 7) {
-  const maxAge = days * 24 * 60 * 60;
-  document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
-}
+import { useEffect, useState } from "react";
+import { apiFetch } from "../api/http.js";
 
 export default function LoginPage({ onLoggedIn }) {
-  const [email, setEmail] = useState("emiremrol@gmail.com");
-  const [password, setPassword] = useState("12345");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [checking, setChecking] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Важно: през Vite proxy
-  const LOGIN_ENDPOINT = "/api/login";
+  // if already logged in -> call onLoggedIn
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      setChecking(true);
+      try {
+        await apiFetch("/user"); // -> /api/user
+        if (!alive) return;
+        onLoggedIn?.();
+      } catch {
+        if (!alive) return;
+        setChecking(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [onLoggedIn]);
 
   const login = async (e) => {
     e.preventDefault();
@@ -20,45 +36,32 @@ export default function LoginPage({ onLoggedIn }) {
     setLoading(true);
 
     try {
-      const res = await fetch(LOGIN_ENDPOINT, {
+      // IMPORTANT: apiFetch uses credentials: "include" already (in your http.js)
+      await apiFetch("/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: { email, password },
       });
 
-      const data = await res.json().catch(() => ({}));
+      // verify cookie session
+      await apiFetch("/user");
 
-      if (!res.ok) {
-        setError(data?.message || `Login failed (HTTP ${res.status})`);
-        return;
-      }
-
-      // backend може да върне token по различни ключове
-      const token = data?.token || data?.access_token || data?.jwt;
-
-      if (!token) {
-        setError(
-          "Login OK, but token not found in response (expected token/access_token/jwt).",
-        );
-        return;
-      }
-
-      // По твоя скрийншот cookie-то е BEARER
-      setCookie("BEARER", token, 7);
-
-      onLoggedIn();
+      onLoggedIn?.();
     } catch (e2) {
-      setError(e2?.message || "Failed to fetch");
+      setError(e2?.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
+  if (checking) {
+    return <div style={{ padding: 40, opacity: 0.8 }}>Checking session…</div>;
+  }
+
   return (
     <div style={{ padding: 40, fontFamily: "Arial", maxWidth: 560 }}>
       <h1 style={{ marginBottom: 6 }}>IT TEAM API CLIENT</h1>
       <div style={{ opacity: 0.8, marginBottom: 16 }}>
-        Login with email + password
+        Login with email + password (HttpOnly cookie)
       </div>
 
       <form onSubmit={login} style={{ display: "grid", gap: 12 }}>
@@ -68,6 +71,7 @@ export default function LoginPage({ onLoggedIn }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={{ width: "100%", padding: 10, marginTop: 6 }}
+            autoComplete="username"
           />
         </label>
 
@@ -78,6 +82,7 @@ export default function LoginPage({ onLoggedIn }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={{ width: "100%", padding: 10, marginTop: 6 }}
+            autoComplete="current-password"
           />
         </label>
 
@@ -89,7 +94,7 @@ export default function LoginPage({ onLoggedIn }) {
       </form>
 
       <div style={{ marginTop: 16, opacity: 0.7, fontSize: 12 }}>
-        Endpoint: <code>{LOGIN_ENDPOINT}</code>
+        Endpoint: <code>/api/login</code> (via proxy)
       </div>
     </div>
   );

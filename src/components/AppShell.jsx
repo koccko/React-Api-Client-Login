@@ -1,6 +1,5 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import { API } from "../lib/api.js";
 import { apiFetch } from "../api/http.js";
 
 function formatBG(dt) {
@@ -49,8 +48,8 @@ function NavBtn({ to, icon, label }) {
 }
 
 export default function AppShell({ user, title, children }) {
-  const nav = useNavigate();
   const [now, setNow] = useState(() => new Date());
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -59,12 +58,19 @@ export default function AppShell({ user, title, children }) {
 
   const onLogout = useMemo(() => {
     return async () => {
+      if (loggingOut) return;
+      setLoggingOut(true);
+
       try {
-        await apiFetch(API.logout, { method: "POST" });
-      } catch {}
-      nav("/login", { replace: true });
+        await apiFetch("/logout", { method: "POST", timeoutMs: 6000 });
+      } catch {
+        // ignore
+      } finally {
+        // IMPORTANT: reload so App.jsx re-checks session and user state resets
+        window.location.replace("/");
+      }
     };
-  }, [nav]);
+  }, [loggingOut]);
 
   return (
     <div className="bg">
@@ -73,12 +79,10 @@ export default function AppShell({ user, title, children }) {
       <div className="blob b3" />
 
       <div className="shell">
-        {/* TOP BAR */}
         <div className="topbar">
           <div className="brand">IT TEAM</div>
           <div className="sub">{title}</div>
 
-          {/* NAV */}
           <div className="navRow">
             <NavBtn to="/home" icon="🏠" label="Home" />
             <NavBtn to="/tickets" icon="🎫" label="Tickets" />
@@ -94,13 +98,17 @@ export default function AppShell({ user, title, children }) {
               {initialsFromUser(user)}
             </div>
 
-            <button className="btn btnGhost" onClick={onLogout}>
-              Logout
+            <button
+              className="btn btnGhost"
+              onClick={onLogout}
+              disabled={loggingOut}
+              title="Sign out"
+            >
+              {loggingOut ? "Logging out..." : "Logout"}
             </button>
           </div>
         </div>
 
-        {/* CONTENT */}
         <div className="pageCard">
           <div className="pageHead">
             <div className="pageTitle">{title}</div>

@@ -1,18 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { API, verifySession } from "../lib/api.js";
 import { apiFetch } from "../api/http.js";
 
-function Modal({ title, children }) {
+function Modal({ title, onClose, children }) {
   return (
     <div className="modalBack">
       <div className="modal">
         <div className="modalTop">
           <div className="modalTitle">{title}</div>
-          <button
-            className="modalClose"
-            onClick={() => (window.location.href = "/home")}
-          >
+          <button className="modalClose" onClick={onClose} title="Close">
             ✕
           </button>
         </div>
@@ -34,12 +30,23 @@ export default function Login() {
 
   // If already logged in -> go home
   useEffect(() => {
+    let alive = true;
+
     (async () => {
       setChecking(true);
-      const s = await verifySession();
-      if (s.ok) nav("/home", { replace: true });
-      setChecking(false);
+      try {
+        await apiFetch("/user"); // -> /api/user
+        if (!alive) return;
+        nav("/home", { replace: true });
+      } catch {
+        if (!alive) return;
+        setChecking(false);
+      }
     })();
+
+    return () => {
+      alive = false;
+    };
   }, [nav]);
 
   const submit = async (e) => {
@@ -48,15 +55,16 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await apiFetch(API.login, {
+      // Login (cookie HttpOnly set by backend)
+      await apiFetch("/login", {
         method: "POST",
         body: { email, password },
       });
 
-      // after login verify (cookie HttpOnly)
-      const s = await verifySession();
-      if (s.ok) nav("/home", { replace: true });
-      else setError("Login ok, but /api/user verification failed.");
+      // Verify cookie worked
+      await apiFetch("/user");
+
+      nav("/home", { replace: true });
     } catch (e2) {
       setError(e2?.message || "Login failed");
     } finally {
@@ -91,13 +99,13 @@ export default function Login() {
           <div className="brand">IT TEAM</div>
           <div className="sub">Login</div>
           <div className="right">
-            <button className="btn btnGhost" onClick={() => nav("/home")}>
+            <button className="btn btnGhost" onClick={() => nav("/")}>
               Back
             </button>
           </div>
         </div>
 
-        <Modal title="Login">
+        <Modal title="Login" onClose={() => nav("/")}>
           <form onSubmit={submit} style={{ display: "grid", gap: 12 }}>
             <div style={{ opacity: 0.8, lineHeight: 1.4 }}>
               Enter email + password. Backend stores token in an{" "}
@@ -110,6 +118,7 @@ export default function Login() {
                 className="input"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="username"
               />
             </label>
 
@@ -120,6 +129,7 @@ export default function Login() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
               />
             </label>
 

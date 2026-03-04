@@ -1,14 +1,23 @@
 import { useEffect, useState } from "react";
-import Layout from "../components/Layout";
-import TicketForm from "../components/TicketForm";
-import TicketList from "../components/TicketList";
-import TicketView from "../components/TicketView";
-import { TicketsAPI } from "../api/tickets";
+import AppShell from "../components/AppShell.jsx";
+import TicketForm from "../components/TicketForm.jsx";
+import TicketList from "../components/TicketList.jsx";
+import TicketView from "../components/TicketView.jsx";
+import { TicketsAPI } from "../api/tickets.js";
 
-export default function TicketsPage({ onLogout }) {
+function extractList(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.tickets)) return data.tickets;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+}
+
+export default function TicketsPage({ user }) {
   const [tickets, setTickets] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedTicket, setSelectedTicket] = useState(null);
+
   const [error, setError] = useState("");
   const [loadingList, setLoadingList] = useState(false);
   const [loadingTicket, setLoadingTicket] = useState(false);
@@ -18,23 +27,31 @@ export default function TicketsPage({ onLogout }) {
     setLoadingList(true);
     try {
       const data = await TicketsAPI.list();
-      // очакваме масив; ако бекенда връща {data:[...]} — смени тук
-      setTickets(Array.isArray(data) ? data : data.data || []);
+      const list = extractList(data);
+      setTickets(list);
+
+      // keep selection consistent
+      if (list.length && !selectedId) {
+        setSelectedId(list[0]?.id ?? null);
+      }
     } catch (e) {
-      setError(e.message);
+      setTickets([]);
+      setError(e?.message || "Failed to load tickets");
     } finally {
       setLoadingList(false);
     }
   };
 
   const loadTicket = async (id) => {
+    if (!id) return;
     setError("");
     setLoadingTicket(true);
     try {
       const t = await TicketsAPI.get(id);
-      setSelectedTicket(t.data || t); // ако е wrap-нато
+      setSelectedTicket(t?.data || t);
     } catch (e) {
-      setError(e.message);
+      setSelectedTicket(null);
+      setError(e?.message || "Failed to load ticket");
     } finally {
       setLoadingTicket(false);
     }
@@ -42,10 +59,12 @@ export default function TicketsPage({ onLogout }) {
 
   useEffect(() => {
     loadList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (selectedId) loadTicket(selectedId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
   const createTicket = async (payload) => {
@@ -53,10 +72,12 @@ export default function TicketsPage({ onLogout }) {
     try {
       const created = await TicketsAPI.create(payload);
       await loadList();
+
       const id = created?.id || created?.data?.id;
       if (id) setSelectedId(id);
     } catch (e) {
-      setError(e.message);
+      setError(e?.message || "Failed to create ticket");
+      throw e;
     }
   };
 
@@ -67,7 +88,8 @@ export default function TicketsPage({ onLogout }) {
       await TicketsAPI.addComment(selectedId, payload);
       await loadTicket(selectedId);
     } catch (e) {
-      setError(e.message);
+      setError(e?.message || "Failed to add comment");
+      throw e;
     }
   };
 
@@ -79,32 +101,39 @@ export default function TicketsPage({ onLogout }) {
       await loadTicket(selectedId);
       await loadList();
     } catch (e) {
-      setError(e.message);
+      setError(e?.message || "Failed to update status");
+      throw e;
     }
   };
 
   return (
-    <Layout title="IT TEAM TICKETS" onLogout={onLogout}>
+    <AppShell user={user} title="Tickets">
       {error && (
-        <div style={{ color: "#dc2626", marginBottom: 12 }}>Error: {error}</div>
+        <div style={{ marginBottom: 12 }} className="error">
+          Error: {error}
+        </div>
       )}
 
       <div
-        style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: 14 }}
+        style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: 14 }}
       >
+        {/* LEFT */}
         <div style={{ display: "grid", gap: 14 }}>
           <TicketForm onCreate={createTicket} />
-          <div>
+
+          <div className="card cardPad">
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
-                marginBottom: 8,
+                marginBottom: 10,
               }}
             >
-              <div style={{ fontWeight: 700 }}>Inbox</div>
+              <div style={{ fontWeight: 900 }}>Inbox</div>
+
               <button
+                className="btn btnGhost"
                 onClick={loadList}
                 disabled={loadingList}
                 style={{ marginLeft: "auto" }}
@@ -112,6 +141,7 @@ export default function TicketsPage({ onLogout }) {
                 {loadingList ? "Refreshing..." : "Refresh"}
               </button>
             </div>
+
             <TicketList
               tickets={tickets}
               selectedId={selectedId}
@@ -120,9 +150,12 @@ export default function TicketsPage({ onLogout }) {
           </div>
         </div>
 
+        {/* RIGHT */}
         <div>
           {loadingTicket ? (
-            <div style={{ opacity: 0.7 }}>Loading ticket...</div>
+            <div className="card cardPad" style={{ opacity: 0.8 }}>
+              Loading ticket…
+            </div>
           ) : (
             <TicketView
               ticket={selectedTicket}
@@ -132,6 +165,6 @@ export default function TicketsPage({ onLogout }) {
           )}
         </div>
       </div>
-    </Layout>
+    </AppShell>
   );
 }

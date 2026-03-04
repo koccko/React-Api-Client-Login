@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppShell from "../components/AppShell.jsx";
-import { verifySession } from "../lib/api.js";
 
 function pickFullName(u) {
   return (
@@ -18,39 +16,8 @@ function pickRole(u) {
   return u?.position || u?.job_title || u?.role || u?.department || "—";
 }
 
-export default function Home() {
+export default function Home({ user }) {
   const nav = useNavigate();
-  const [checking, setChecking] = useState(true);
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    (async () => {
-      setChecking(true);
-      const s = await verifySession();
-      if (!s.ok) {
-        nav("/login", { replace: true });
-        return;
-      }
-      setUser(s.user);
-      setChecking(false);
-    })();
-  }, [nav]);
-
-  if (checking) {
-    return (
-      <div className="bg">
-        <div className="blob b1" />
-        <div className="blob b2" />
-        <div className="blob b3" />
-        <div
-          className="shell"
-          style={{ display: "grid", placeItems: "center", minHeight: "100vh" }}
-        >
-          <div style={{ opacity: 0.8 }}>Loading…</div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <AppShell user={user} title="Home">

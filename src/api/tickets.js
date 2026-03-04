@@ -1,13 +1,15 @@
 import { apiFetch } from "./http";
 
-// 👇 Смени endpoints според бекенда на колегата
 export const TicketsAPI = {
-  list: () => apiFetch("/api/tickets"),
-  get: (id) => apiFetch(`/api/tickets/${id}`),
-  create: (payload) =>
-    apiFetch("/api/tickets", { method: "POST", body: payload }),
+  list: () => apiFetch("/tickets"),
+
+  get: (id) => apiFetch(`/tickets/${id}`),
+
+  create: (payload) => apiFetch("/tickets", { method: "POST", body: payload }),
+
   addComment: (id, payload) =>
-    apiFetch(`/api/tickets/${id}/comments`, { method: "POST", body: payload }),
+    apiFetch(`/tickets/${id}/comments`, { method: "POST", body: payload }),
+
   updateStatus: (id, payload) =>
-    apiFetch(`/api/tickets/${id}/status`, { method: "PUT", body: payload }),
+    apiFetch(`/tickets/${id}/status`, { method: "PUT", body: payload }),
 };
