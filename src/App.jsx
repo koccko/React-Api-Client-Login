@@ -1,18 +1,4 @@
-import { useEffect, useState } from "react";
-
-// ---- cookie helpers ----
-function getCookie(name) {
-  const prefix = `${name}=`;
-  const parts = document.cookie.split(";").map((c) => c.trim());
-  for (const p of parts) {
-    if (p.startsWith(prefix)) return decodeURIComponent(p.slice(prefix.length));
-  }
-  return "";
-}
-
-function deleteCookie(name) {
-  document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
-}
+import { useEffect, useMemo, useState } from "react";
 
 // ---- UI bits ----
 function Button({
@@ -159,6 +145,64 @@ function Feature({ title, desc }) {
   );
 }
 
+function DashboardPlaceholder({ onLogout }) {
+  return (
+    <div style={{ padding: "20px 28px", fontFamily: "Arial" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ fontWeight: 900, fontSize: 18 }}>IT TEAM</div>
+        <div style={{ opacity: 0.7 }}>Tickets</div>
+        <div style={{ marginLeft: "auto" }}>
+          <Button variant="ghost" onClick={onLogout}>
+            Logout
+          </Button>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 18, opacity: 0.85 }}>
+        Logged ✅ (validated via <code>/api/user</code>). Next: real ticket
+        dashboard.
+      </div>
+
+      <div
+        style={{
+          marginTop: 14,
+          display: "grid",
+          gridTemplateColumns: "repeat(3, minmax(220px, 1fr))",
+          gap: 12,
+        }}
+      >
+        <StatCard label="Open" value="—" hint="Waiting for API /api/tickets" />
+        <StatCard
+          label="In Progress"
+          value="—"
+          hint="Waiting for API /api/tickets"
+        />
+        <StatCard
+          label="Resolved"
+          value="—"
+          hint="Waiting for API /api/tickets"
+        />
+      </div>
+
+      <div
+        style={{
+          marginTop: 14,
+          border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: 18,
+          padding: 14,
+          background: "rgba(255,255,255,0.04)",
+        }}
+      >
+        <div style={{ fontWeight: 800 }}>Next step</div>
+        <div style={{ opacity: 0.75, marginTop: 6, lineHeight: 1.5 }}>
+          Give me the ticket endpoints (list/create/comments/status) and we’ll
+          wire real data.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LoginForm({ onLoggedIn }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -177,7 +221,7 @@ function LoginForm({ onLoggedIn }) {
       const res = await fetch(LOGIN_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // backend set-cookie
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
@@ -188,7 +232,8 @@ function LoginForm({ onLoggedIn }) {
         return;
       }
 
-      // backend already sets cookie (BEARER)
+      // IMPORTANT: do NOT read cookie via document.cookie (HttpOnly).
+      // Just notify parent to validate via API.
       onLoggedIn();
     } catch (e2) {
       setError(e2?.message || "Failed to fetch");
@@ -200,8 +245,8 @@ function LoginForm({ onLoggedIn }) {
   return (
     <form onSubmit={submit} style={{ display: "grid", gap: 12 }}>
       <div style={{ opacity: 0.8, lineHeight: 1.4 }}>
-        Въведи email и парола. След login token-ът се пази в cookie и системата
-        те пуска към dashboard.
+        Enter email + password. Backend stores token in an HttpOnly cookie (not
+        readable by JS).
       </div>
 
       <label style={{ display: "grid", gap: 6 }}>
@@ -255,78 +300,66 @@ function LoginForm({ onLoggedIn }) {
   );
 }
 
-function DashboardPlaceholder({ onLogout }) {
-  return (
-    <div style={{ padding: "20px 28px", fontFamily: "Arial" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ fontWeight: 900, fontSize: 18 }}>IT TEAM</div>
-        <div style={{ opacity: 0.7 }}>Tickets</div>
-        <div style={{ marginLeft: "auto" }}>
-          <Button variant="ghost" onClick={onLogout}>
-            Logout
-          </Button>
-        </div>
-      </div>
-
-      <div style={{ marginTop: 18, opacity: 0.85 }}>
-        Logged ✅ (cookie <code>BEARER</code> detected). Следва: ticket
-        dashboard-а.
-      </div>
-
-      <div
-        style={{
-          marginTop: 14,
-          display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(220px, 1fr))",
-          gap: 12,
-        }}
-      >
-        <StatCard label="Open" value="—" hint="Waiting for API /api/tickets" />
-        <StatCard
-          label="In Progress"
-          value="—"
-          hint="Waiting for API /api/tickets"
-        />
-        <StatCard
-          label="Resolved"
-          value="—"
-          hint="Waiting for API /api/tickets"
-        />
-      </div>
-
-      <div
-        style={{
-          marginTop: 14,
-          border: "1px solid rgba(255,255,255,0.12)",
-          borderRadius: 18,
-          padding: 14,
-          background: "rgba(255,255,255,0.04)",
-        }}
-      >
-        <div style={{ fontWeight: 800 }}>Next step</div>
-        <div style={{ opacity: 0.75, marginTop: 6, lineHeight: 1.5 }}>
-          Кажи ми endpoints на ticket системата (list, create, comments, status)
-          и ще вържем реалните данни.
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   const [authed, setAuthed] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [loginOpen, setLoginOpen] = useState(false);
 
-  useEffect(() => {
-    const t = getCookie("BEARER") || getCookie("it_token");
-    setAuthed(Boolean(t));
+  // Change this if your backend uses a different "who am I" endpoint:
+  const AUTH_VERIFY_ENDPOINT = "/api/user"; // or "/api/me"
+
+  const checkAuth = useMemo(() => {
+    return async () => {
+      setChecking(true);
+      try {
+        const res = await fetch(AUTH_VERIFY_ENDPOINT, {
+          method: "GET",
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        });
+
+        // If cookie is valid -> should return 200
+        setAuthed(res.ok);
+      } catch {
+        setAuthed(false);
+      } finally {
+        setChecking(false);
+      }
+    };
   }, []);
 
-  const logout = () => {
-    deleteCookie("BEARER");
-    deleteCookie("it_token");
+  // On every refresh/load, validate via API (not via document.cookie)
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const logout = async () => {
+    // If you have backend logout endpoint - use it
+    try {
+      await fetch("/api/logout", { method: "POST", credentials: "include" });
+    } catch {
+      // ignore network errors
+    }
     setAuthed(false);
   };
+
+  // Optional: while verifying session, show a small loading state
+  if (checking) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "linear-gradient(180deg, #0b1220, #070b12)",
+          color: "white",
+          fontFamily: "Arial",
+        }}
+      >
+        <div style={{ opacity: 0.8 }}>Checking session…</div>
+      </div>
+    );
+  }
 
   if (authed) {
     return <DashboardPlaceholder onLogout={logout} />;
@@ -416,8 +449,9 @@ export default function App() {
                 maxWidth: 720,
               }}
             >
-              Създавай, следи и решавай тикети. Коментари, статуси, приоритети и
-              история — всичко на едно място. В момента фокусираме login-а.
+              Create, track and resolve tickets. Comments, statuses, priorities
+              and history — all in one place. Register is disabled for now; we
+              focus on login.
             </div>
 
             <div
@@ -472,8 +506,8 @@ export default function App() {
           <div style={{ display: "grid", gap: 12 }}>
             <StatCard
               label="Auth"
-              value="Cookie (BEARER)"
-              hint="Backend sets token in cookie"
+              value="Cookie (HttpOnly)"
+              hint="Validated via /api/user"
             />
             <StatCard
               label="API"
@@ -488,7 +522,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Features - FULL WIDTH */}
+        {/* Features */}
         <div
           style={{
             marginTop: 14,
@@ -499,19 +533,18 @@ export default function App() {
         >
           <Feature
             title="Ticket workflow"
-            desc="Open → In progress → Resolved → Closed. История на промени + коментари."
+            desc="Open → In progress → Resolved → Closed. History + comments."
           />
           <Feature
             title="Fast triage"
-            desc="Приоритети, филтри, търсене и assigned user. Всичко подредено за IT."
+            desc="Priorities, filters, search and assigned user. Designed for IT."
           />
           <Feature
             title="Audit-friendly"
-            desc="Логове на действията, време за реакция и резолюция (SLA-ready)."
+            desc="Action logs, reaction time and resolution time (SLA-ready)."
           />
         </div>
 
-        {/* Footer */}
         <div
           style={{
             marginTop: 18,
@@ -526,9 +559,10 @@ export default function App() {
 
       <Modal open={loginOpen} title="Login" onClose={() => setLoginOpen(false)}>
         <LoginForm
-          onLoggedIn={() => {
-            setLoginOpen(false);
-            setAuthed(true);
+          onLoggedIn={async () => {
+            await checkAuth(); // validate session via API
+            if (authed) setLoginOpen(false);
+            else setLoginOpen(false); // close anyway; if not authed, user can retry
           }}
         />
       </Modal>
