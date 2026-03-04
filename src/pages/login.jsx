@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { API, apiFetch, verifySession } from "../lib/api.js";
+import { API, verifySession } from "../lib/api.js";
+import { apiFetch } from "../api/http.js";
 
 function Modal({ title, children }) {
   return (
@@ -8,6 +9,12 @@ function Modal({ title, children }) {
       <div className="modal">
         <div className="modalTop">
           <div className="modalTitle">{title}</div>
+          <button
+            className="modalClose"
+            onClick={() => (window.location.href = "/home")}
+          >
+            ✕
+          </button>
         </div>
         <div className="modalBody">{children}</div>
       </div>
@@ -17,20 +24,20 @@ function Modal({ title, children }) {
 
 export default function Login() {
   const nav = useNavigate();
-  const [checking, setChecking] = useState(true);
 
+  const [checking, setChecking] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // If already logged -> go dashboard
+  // If already logged in -> go home
   useEffect(() => {
     (async () => {
       setChecking(true);
       const s = await verifySession();
-      if (s.ok) nav("/dashboard", { replace: true });
+      if (s.ok) nav("/home", { replace: true });
       setChecking(false);
     })();
   }, [nav]);
@@ -41,26 +48,17 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const { res, data } = await apiFetch(API.login, {
+      const res = await apiFetch(API.login, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: { email, password },
       });
 
-      if (!res.ok) {
-        setError(data?.message || `Login failed (HTTP ${res.status})`);
-        return;
-      }
-
-      // Verify session via API (cookie is HttpOnly)
+      // after login verify (cookie HttpOnly)
       const s = await verifySession();
-      if (s.ok) nav("/dashboard", { replace: true });
-      else
-        setError(
-          "Logged in but session verify failed. Check /api/user endpoint.",
-        );
+      if (s.ok) nav("/home", { replace: true });
+      else setError("Login ok, but /api/user verification failed.");
     } catch (e2) {
-      setError(e2?.message || "Failed to fetch");
+      setError(e2?.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -90,20 +88,10 @@ export default function Login() {
 
       <div className="shell">
         <div className="topbar">
-          <div
-            className="brand"
-            style={{ cursor: "pointer" }}
-            onClick={() => nav("/")}
-          >
-            IT TEAM
-          </div>
-          <div className="sub">Ticket System</div>
-          <div style={{ marginLeft: 12 }}>
-            <div className="badge-dev">🚧 В процес на разработка :)</div>
-          </div>
-
+          <div className="brand">IT TEAM</div>
+          <div className="sub">Login</div>
           <div className="right">
-            <button className="btn btnGhost" onClick={() => nav("/")}>
+            <button className="btn btnGhost" onClick={() => nav("/home")}>
               Back
             </button>
           </div>
@@ -112,8 +100,8 @@ export default function Login() {
         <Modal title="Login">
           <form onSubmit={submit} style={{ display: "grid", gap: 12 }}>
             <div style={{ opacity: 0.8, lineHeight: 1.4 }}>
-              Enter email + password. Backend stores token in an HttpOnly cookie
-              (not readable by JS).
+              Enter email + password. Backend stores token in an{" "}
+              <b>HttpOnly cookie</b>.
             </div>
 
             <label style={{ display: "grid", gap: 6 }}>

@@ -3,10 +3,10 @@ export async function apiFetch(path, { method = "GET", body, headers } = {}) {
 
   const res = await fetch(url, {
     method,
-    credentials: "include", // ✅ важно за HttpOnly cookie
+    credentials: "include",
     headers: {
-      ...(body ? { "Content-Type": "application/json" } : {}),
       Accept: "application/json",
+      ...(body ? { "Content-Type": "application/json" } : {}),
       ...(headers || {}),
     },
     body: body ? JSON.stringify(body) : undefined,
