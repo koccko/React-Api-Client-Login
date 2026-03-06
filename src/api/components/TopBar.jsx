@@ -95,6 +95,13 @@ export default function TopBar({ user, onLogout }) {
 
       <nav className="navbar">
         <NavLink
+          to="/dashboard"
+          className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+        >
+          🏠 Dashboard
+        </NavLink>
+
+        <NavLink
           to="/tickets"
           className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
         >
@@ -106,13 +113,6 @@ export default function TopBar({ user, onLogout }) {
           className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
         >
           💬 Chat
-        </NavLink>
-
-        <NavLink
-          to="/info"
-          className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
-        >
-          ℹ️ Info
         </NavLink>
       </nav>
 

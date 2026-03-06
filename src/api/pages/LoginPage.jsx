@@ -20,7 +20,7 @@ export default function LoginPage({ onLogin, busy, error }) {
           </div>
         </div>
 
-        <div className="login-title">Welcome back</div>
+        <div className="login-title">Welcome to our Portal</div>
         <div className="login-text">
           Log in to access tickets, chat, info and your user dashboard.
         </div>

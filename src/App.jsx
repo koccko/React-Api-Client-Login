@@ -11,7 +11,7 @@ import {
 import LoginPage from "./api/pages/LoginPage.jsx";
 import TicketsPage from "./api/pages/TicketsPage.jsx";
 import ChatPage from "./api/pages/ChatPage.jsx";
-import InfoPage from "./api/pages/InfoPage.jsx";
+import DashboardPage from "./api/pages/DashboardPage.jsx";
 import AppShell from "./api/components/AppShell.jsx";
 
 import { getMe, login, logout } from "./api/auth.js";
@@ -120,11 +120,11 @@ function AppInner() {
       />
 
       <Route
-        path="/info"
+        path="/dashboard"
         element={
           <RequireAuth user={user}>
             <AppShell user={user} onLogout={onLogout}>
-              <InfoPage user={user} />
+              <DashboardPage user={user} />
             </AppShell>
           </RequireAuth>
         }
