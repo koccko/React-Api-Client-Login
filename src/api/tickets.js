@@ -1,15 +1,30 @@
-import { apiFetch } from "./http";
+import { apiFetch } from "./http.js";
 
-export const TicketsAPI = {
-  list: () => apiFetch("/tickets"),
+export function listTickets() {
+  return apiFetch("/api/tickets");
+}
 
-  get: (id) => apiFetch(`/tickets/${id}`),
+export function createTicket(payload) {
+  return apiFetch("/api/tickets", {
+    method: "POST",
+    body: payload,
+  });
+}
 
-  create: (payload) => apiFetch("/tickets", { method: "POST", body: payload }),
+export function getTicket(id) {
+  return apiFetch(`/api/tickets/${id}`);
+}
 
-  addComment: (id, payload) =>
-    apiFetch(`/tickets/${id}/comments`, { method: "POST", body: payload }),
+export function addComment(id, message) {
+  return apiFetch(`/api/tickets/${id}/comment`, {
+    method: "POST",
+    body: { message },
+  });
+}
 
-  updateStatus: (id, payload) =>
-    apiFetch(`/tickets/${id}/status`, { method: "PUT", body: payload }),
-};
+export function updateTicketStatus(id, status) {
+  return apiFetch(`/api/tickets/${id}/status`, {
+    method: "PATCH",
+    body: { status },
+  });
+}
